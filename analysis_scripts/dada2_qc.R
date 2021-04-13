@@ -1,4 +1,8 @@
 #!/usr/bin/env Rscript
+# Author: Adam Sorbie 
+# Date: 13/04/20
+# Version 0.7.0
+
 library(dada2)
 library(optparse)
 

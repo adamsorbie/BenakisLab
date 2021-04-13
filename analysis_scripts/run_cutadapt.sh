@@ -1,11 +1,8 @@
 #!/bin/bash 
 
-## required options - 
-# -a
-# -A
-# -m
-# -M
-# -o 
+# Author: Adam Sorbie 
+# Date: 13/04/20
+# Version: 0.4.0
 
 while getopts a:A:m:M:o: flag
 do
