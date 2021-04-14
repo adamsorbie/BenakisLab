@@ -260,4 +260,7 @@ print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
 #' add third table with best hit formatting 
 #' remove any redundant code 
 #' tidy up writing out section
-#' potentially update muscle to mafft 
+#' potentially update muscle to mafft since it supports parallelisation 
+#' progress bar 
+#' log of stdout 
+#' process time 
