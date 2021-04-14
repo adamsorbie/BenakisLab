@@ -2,7 +2,7 @@
 
 #' Author: Adam Sorbie 
 #' Date: 14/04/21
-#' Version: 0.5.1
+#' Version: 0.6.0
 
 
 ### LIBRARIES 
