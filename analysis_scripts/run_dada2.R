@@ -1,14 +1,17 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 13/04/21
-#' Version: 0.5.0 
+#' Date: 14/04/21
+#' Version: 0.5.1
 
+
+### LIBRARIES 
 library(dada2)
 library(DECIPHER)
 library(optparse)
 library(keypress)
 
+### CMD OPTIONS
 
 # required options trunclenr trunclenl, 
 option_list <- list(
@@ -32,6 +35,9 @@ option_list <- list(
               metavar = "character"), 
   make_option(c("-N", "--n_errorsR"),  type="integer", default =2,
               help="atomic vector of expected errors for reverse reads",
+              metavar = "character"),
+  make_option(c("-t", "--threads"),  type="integer", default=detectCores(),
+              help="Number of threads",
               metavar = "character")
 )
 
@@ -42,6 +48,25 @@ if (is.null(opt$path)) {
   print_help(opt_parser)
   stop("At least one argument must be supplied (path)", call.=FALSE)
 }
+
+### FUNCTIONS
+normalize <- function(asv_tab) {
+    rel_tab <- t(100 * t(asv_tab) / colSums(asv_tab))
+    return(as.data.frame(rel_tab))
+}
+
+filter_abundance <- function(asv_tab) {
+  # keeps ASVs which are above 0.25% rel abund in at least one sample 
+  rel <- normalize(asv_tab)
+  idx <- rownames(rel)
+  asv_tab_out <- asv_tab[idx, ]
+  return(asv_tab_out)
+}
+
+
+### MAIN
+print(paste("ANALYSIS STARTING", Sys.time(), sep=" "))
+
 path <- opt$path 
 setwd(path)
 
@@ -74,18 +99,18 @@ if (opt$cut_adapt != TRUE) {
     
     out <- filterAndTrim(trimFs, filtFs, trimRs, filtRs, maxEE=maxE, 
                          truncLen=trunc_params, rm.phix=TRUE, minLen = opt$minlen,
-                         truncQ=3, compress=TRUE, multithread=10)
+                         truncQ=3, compress=TRUE, multithread=opt$threads)
 } else {
   out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, maxEE=maxE, 
                        truncLen=trunc_params, rm.phix=TRUE, minLen = opt$minlen,
-                       truncQ=3, compress=TRUE, multithread=10)
+                       truncQ=3, compress=TRUE, multithread=opt$threads)
 }
 # learn error rate 
-errF <- learnErrors(filtFs, multithread = TRUE, nbases = 1e8)
+errF <- learnErrors(filtFs, multithread = opt$threads, nbases = 1e8)
 jpeg(paste(opt$out, "error_plot_f.jpg", sep="/"))
 plotErrors(errF, nominalQ=TRUE)
 dev.off()
-errR <- learnErrors(filtRs, multithread = TRUE, nbases = 1e8)
+errR <- learnErrors(filtRs, multithread =opt$threads, nbases = 1e8)
 jpeg(paste(opt$out, "error_plot_r.jpg", sep="/"))
 plotErrors(errR, nominalQ=TRUE)
 dev.off()
@@ -97,8 +122,8 @@ names(derepFs) <- samples
 names(derepRs) <- samples
 
 # run dada2 algorithm 
-dadaFs <- dada(derepFs, err=errF, multithread = 10)
-dadaRs <- dada(derepRs, err=errR, multithread = 10)
+dadaFs <- dada(derepFs, err=errF, multithread = opt$threads)
+dadaRs <- dada(derepRs, err=errR, multithread = opt$threads)
 
 # merge paired reads
 merged <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose = TRUE)
@@ -120,7 +145,7 @@ seqtab.len_filt <- seqtab[, seqlen>MINLEN & seqlen<MAXLEN]
 
 # filter chimeras 
 seqtab_chim_filt <- removeBimeraDenovo(seqtab.len_filt, method = "consensus", 
-                                       multithread=10, verbose = TRUE)
+                                       multithread=opt$threads, verbose = TRUE)
 
 percent.chim <- 1 - sum(seqtab_chim_filt)/sum(seqtab)
 # check number of reads which made it through each step 
@@ -191,8 +216,13 @@ write(asv_fasta, paste(opt$out, "ASV_seqs.fasta", sep = "/"))
 # count table 
 
 asv_tab <- t(seqtab_chim_filt)
+
 row.names(asv_tab) <- sub(">", "", asv_headers)
-write.table(asv_tab, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
+
+# pre-filter by 0.25% relative abundance (Reitmeier et al 2020, Researchsquare)
+asv_tab_filt <- filter_abundance(asv_tab)
+
+write.table(asv_tab_filt, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
 
 # tax table 
@@ -208,13 +238,26 @@ asv_tab_tax$taxonomy <- paste(asv_taxa$taxonomy)
 write.table(asv_tab_tax, paste(opt$out, "ASV_seqtab_tax.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
 
+
+# Phylogenetic tree construction 
+setwd(opt$out)
+
+system("muscle -in ASV_seqs.fasta -out aligned.fasta -maxiters 3")
+system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
+
+print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
+
 # to-do Polishing script 
 
-#' add phylogenetic tree
+# necessary 
+
+#' re-check code based on astrobiomike/DADA2 tutorial
+#' refine settings to reduce number of ASVs if possible 
+
+# nice additions 
+
 #' enhance taxonomic classification if possible 
-#' add option for cores 
-#' filtering step at the end (0.25% abundance)
 #' add third table with best hit formatting 
 #' remove any redundant code 
-#' tidy up writing out section 
-
+#' tidy up writing out section
+#' potentially update muscle to mafft 
