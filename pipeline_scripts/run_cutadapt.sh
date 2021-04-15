@@ -4,14 +4,15 @@
 # Date: 13/04/20
 # Version: 0.4.0
 
-while getopts a:A:m:M:o: flag
+while getopts a:A:m:M: flag
 do
   case "${flag}" in
     a) f_primer=${OPTARG};;
     A) r_primer=${OPTARG};;
     m) min_lenf=${OPTARG};;
     M) min_lenr=${OPTARG};;
-    o) output=${OPTARG};;
+    *) echo "usage: $0 [-a] [-A] [-m] [-M]" >&2
+       exit 1 ;;
   esac
 done
 
@@ -27,13 +28,16 @@ conda activate bioinfo
 
 mkdir trimmed_primer
 
- for sample in $(ls *.fastq.gz);
- do;
+for sample in $(ls *.fastq.gz | cut -f1-3 -d"_");
+do
     echo "Trimming sample: $sample"
     cutadapt -a $f_primer \
     -A $r_primer \
-    -m $m -M $M --discard-untrimmed \
-    -o ${sample}_R1_trimmed.fastq.gz -p ${sample}_R2_trimmed.fastq.gz \
-     ${sample}_sub_R1.fq ${sample}_sub_R2.fq \
+    -m $min_lenf -M $min_lenr --discard-untrimmed \
+    -o ${sample}_R1_trimmed_primer.fastq.gz -p ${sample}_R2_trimmed_primer.fastq.gz \
+     ${sample}_R1.fastq.gz ${sample}_R2.fastq.gz \
      >> cutadapt_primer_trimming_stats.txt 2>&1
 done
+
+mkdir trimme_primer 
+mv *trimmed_primer.fastq.gz trimmed_primer
