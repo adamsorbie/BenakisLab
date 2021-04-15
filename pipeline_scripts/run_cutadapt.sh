@@ -1,8 +1,8 @@
 #!/bin/bash 
 
 # Author: Adam Sorbie 
-# Date: 13/04/20
-# Version: 0.4.0
+# Date: 15/04/20
+# Version: 0.5.0
 
 while getopts a:A:m:M: flag
 do
@@ -22,8 +22,6 @@ then
   exit 
 fi 
 
-
-
 conda activate bioinfo
 
 mkdir trimmed_primer
@@ -35,9 +33,9 @@ do
     -A $r_primer \
     -m $min_lenf -M $min_lenr --discard-untrimmed \
     -o ${sample}_R1_trimmed_primer.fastq.gz -p ${sample}_R2_trimmed_primer.fastq.gz \
-     ${sample}_R1.fastq.gz ${sample}_R2.fastq.gz \
+     ${sample}_R1_001.fastq.gz ${sample}_R2_001.fastq.gz \
      >> cutadapt_primer_trimming_stats.txt 2>&1
 done
 
-mkdir trimme_primer 
+mkdir trimmed_primer 
 mv *trimmed_primer.fastq.gz trimmed_primer
