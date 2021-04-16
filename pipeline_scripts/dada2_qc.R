@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Author: Adam Sorbie 
-# Date: 13/04/20
-# Version 0.7.0
+# Date: 16/04/20
+# Version 0.8.0
 
 library(dada2)
 library(optparse)
@@ -10,6 +10,10 @@ option_list = list(
   make_option(c("-p", "--path"), type="character", default=NULL, 
               help="path of read files", metavar="character"),
   make_option(c("-o", "--out"), type="character", default="dada2_qc", 
+              help="output folder", metavar="character"),
+  make_option(c("-t", "--trimF"), type="character", default="dada2_qc", 
+              help="output folder", metavar="character"),
+  make_option(c("-T", "--trimR"), type="character", default="dada2_qc", 
               help="output folder", metavar="character")
 )
 
