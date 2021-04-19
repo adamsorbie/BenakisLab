@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 16/04/21
-#' Version: 0.8.0
+#' Date: 19/04/21
+#' Version: 0.9.0
 
 
 ### LIBRARIES 
