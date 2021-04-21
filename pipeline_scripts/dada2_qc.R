@@ -35,7 +35,7 @@ setwd(opt$path)
 trimleft <- c(opt$trimF, opt$trimR)
 
 # invoke system command ls and cut to get sample names from fastq filenames
-system('ls *R1_001.fastq.gz | cut -f1 -d_ > samples')
+system('ls *R1_001.fastq.gz | cut -f1 -d"-" > samples')
 
 # store sample names as variable
 samples <- scan("samples", what = "character")

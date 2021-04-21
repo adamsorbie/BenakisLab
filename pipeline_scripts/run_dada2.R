@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 19/04/21
-#' Version: 0.9.0
+#' Date: 21/04/21
+#' Version: 0.9.1
 
 
 ### LIBRARIES 
@@ -37,6 +37,9 @@ option_list <- list(
               action = "store"),
   make_option(c("-t", "--threads"),  type="integer", default=detectCores(),
               help="Number of threads",
+              action = "store"),
+  make_option(c("-d", "--delimiter"),  type="integer", default="-",
+              help="delimiter separating sample name from illumina format extension",
               action = "store")
 )
 
@@ -88,7 +91,7 @@ trunc_params <- c(opt$trunc_f, opt$trunc_r)
 
 
 # invoke system command ls and cut to get sample names from fastq filenames
-system('ls *R1_001.fastq.gz | cut -f1 -d_ > samples')
+system(paste0("ls *R1_001.fastq.gz | cut -f1 -d", opt$delimiter, " > samples"))
 
 # store sample names as variable
 samples <- scan("samples", what = "character")

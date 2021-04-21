@@ -1,4 +1,4 @@
-#!/usr/bin/env Rscript
+#!/usr/bin/ Rscript
 
 #' Author: Adam Sorbie 
 #' Date: 16/04/21
@@ -21,7 +21,7 @@ option_list <- list(
               help="forward primer", action = "store"),
   make_option(c("-r", "--rev_primer"), type="character", default=NULL, 
               help="reverse primer", action = "store"),
-  make_option(c("-n", "--n_sample"), type="character", default=NULL, 
+  make_option(c("-n", "--n_sample"), type="integer", default=4, 
               help="number of paired reads to sample", action = "store")
 )
 
@@ -73,15 +73,13 @@ REV.orients <- allOrients(opt$rev_primer)
 fnFs.filtN <- file.path(opt$path, "filtN", basename(fnFs)) 
 fnRs.filtN <- file.path(opt$path, "filtN", basename(fnRs))
 
-filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = 10)
+filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = 6)
 
 
 search_primers(fnFs.filtN, fnRs.filtN, FWD.orients, REV.orients, 
                sample_n = opt$n_sample)
  
-
+system('rm -rf filtN') 
 ## TO-do
 
-# delete filtered reads after checking
-# output to file/log 
 # double check cmd options are set correctly 
