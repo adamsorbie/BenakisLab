@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 21/04/21
-#' Version: 0.9.1
+#' Date: 22/04/21
+#' Version: 0.9.65
 
 
 ### LIBRARIES 
@@ -10,8 +10,8 @@ library(dada2)
 library(Biostrings)
 library(DECIPHER)
 library(optparse)
-library(keypress)
 library(ggpubr)
+library(stringr)
 
 ### CMD OPTIONS
 
@@ -27,7 +27,7 @@ option_list <- list(
               help="minimum length of reads", action = "store"),
   make_option(c("-q", "--int_quality_control"), type="logical", default=TRUE, 
               help="output qc from dada2 run", action = "store"),
-  make_option(c("-o", "--out"), type="character", default="dada2_qc", 
+  make_option(c("-o", "--out"), type="character", default="dada2_out", 
               help="full path of output folder", action = "store"),
   make_option(c("-n", "--n_errorsF"), type="integer", default =2,
               help="expected errors for forward reads",
@@ -37,9 +37,6 @@ option_list <- list(
               action = "store"),
   make_option(c("-t", "--threads"),  type="integer", default=detectCores(),
               help="Number of threads",
-              action = "store"),
-  make_option(c("-d", "--delimiter"),  type="integer", default="-",
-              help="delimiter separating sample name from illumina format extension",
               action = "store")
 )
 
@@ -64,7 +61,8 @@ RIGHT <- function(x,n){
 filter_abundance <- function(asv_tab) {
   # keeps ASVs which are above 0.25% rel abund in at least one sample 
   rel <- normalize(asv_tab)
-  idx <- rownames(rel)
+  rel_filt <- rel[rowSums(rel) > 0.25, ]
+  idx <- rownames(rel_filt)
   asv_tab_out <- asv_tab[idx, ]
   return(asv_tab_out)
 }
@@ -89,22 +87,37 @@ dir.create(opt$out)
 maxE <- c(opt$n_errorsF, opt$n_errorsR)
 trunc_params <- c(opt$trunc_f, opt$trunc_r)
 
+# check reads follow illumina naming format here and exit if not
+# for now this will work but needs to be expanded - manually checking before 
+# should reduce need for this but still better to have it fully working
+illegal_chars <- c("-","#")
+check_fnames <- str_detect(list.files(pattern = "*.fastq.gz"), 
+                           illegal_chars)
+if (any(check_fnames == TRUE)){
+  print("filenames not in illumina format, exiting")
+  stop()
+} else {
+  print("filenames ok!")
+}
 
-# invoke system command ls and cut to get sample names from fastq filenames
-system(paste0("ls *R1_001.fastq.gz | cut -f1 -d", opt$delimiter, " > samples"))
-
-# store sample names as variable
-samples <- scan("samples", what = "character")
 # forward reads
-fnFs <- sort(list.files(pattern="_R1_001.fastq.gz", full.names = TRUE))
+fnFs <- sort(list.files(pattern="R1_001.fastq.gz", full.names = TRUE))
 # reverse reads
-fnRs <- sort(list.files(pattern="_R2_001.fastq.gz", full.names = TRUE))
+fnRs <- sort(list.files(pattern="R2_001.fastq.gz", full.names = TRUE))
 
+# get sample names from forward reads 
+sample.names <- sapply(strsplit(basename(fnFs), "_R1"), `[`, 1); sample.names
+
+# if sample names contain trimmed_primer suffix remove it
+if (str_detect(sample.names, "trimmed_primer") == TRUE){
+  sample.names <- gsub(sample.names, pattern = "_trimmed_primer", 
+                       replacement = "")
+}
 
 # output path for filtered F reads
-filtFs <- file.path("filtered", paste0(samples, "_filt_R1_001.fastq.gz"))
+filtFs <- file.path("filtered", paste0(sample.names, "_filt_R1_001.fastq.gz"))
 # output path for filtered R reads
-filtRs <- file.path("filtered", paste0(samples, "_filt_R2_001.fastq.gz"))
+filtRs <- file.path("filtered", paste0(sample.names, "_filt_R2_001.fastq.gz"))
 
 
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, maxEE=maxE, 
@@ -126,8 +139,8 @@ dev.off()
 # get unique sequences
 derepFs <- derepFastq(filtFs, verbose = TRUE)
 derepRs <- derepFastq(filtRs, verbose = TRUE)
-names(derepFs) <- samples
-names(derepRs) <- samples
+names(derepFs) <- sample.names
+names(derepRs) <- sample.names
 
 # remove filtered reads to reduce disk space
 system("rm -rf filtered || true")
@@ -161,7 +174,7 @@ seqtab_chim_filt <- removeBimeraDenovo(seqtab.len_filt, method = "consensus",
 percent.nonchim <- sum(seqtab_chim_filt)/sum(seqtab)
 # check number of reads which made it through each step 
 getN <- function(x) sum(getUniques(x))
-summary_tab <- data.frame(row.names=samples, dada2_input=out[,1],
+summary_tab <- data.frame(row.names=sample.names, dada2_input=out[,1],
                           filtered=out[,2], dada_f=sapply(dadaFs, getN),
                           dada_r=sapply(dadaRs, getN), merged=sapply(merged, getN),
                           nonchim=rowSums(seqtab_chim_filt), 
@@ -197,7 +210,7 @@ dna <- DNAStringSet(getSequences(seqtab_chim_filt))
 
 ## and classifying
 tax_info <- IdTaxa(test=dna, trainingSet=trainingSet, strand="both", 
-                   processors=NULL, verbose=TRUE)
+                   processors=NULL, verbose=TRUE, threshold = 50)
 
 # tax table:
 # creating table of taxonomy and setting any that are unclassified as "NA"
@@ -205,8 +218,10 @@ ranks <- c("domain", "phylum", "class", "order", "family", "genus", "species")
 asv_taxa <- t(sapply(tax_info, function(x) {
   m <- match(ranks, x$rank)
   taxa <- x$taxon[m]
+  taxa[startsWith(taxa, "unclassified_")] <- NA
   taxa
 }))
+
 
 # generate row and column names
 asv_headers <- vector(dim(seqtab_chim_filt) [2], mode = "character")
@@ -233,21 +248,28 @@ asv_tab <- t(seqtab_chim_filt)
 row.names(asv_tab) <- sub(">", "", asv_headers)
 
 # pre-filter by 0.25% relative abundance (Reitmeier et al 2020, Researchsquare)
+print(paste("pre-filtering dimensions:", dim(asv_tab)[1], sep=" ")) 
 asv_tab_filt <- filter_abundance(asv_tab)
+print(paste("post-filtering dimensions:", dim(asv_tab_filt)[1], sep=" ")) 
 
 write.table(asv_tab_filt, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
 
 # tax table 
-
 row.names(asv_taxa) <- sub(">", "", asv_headers)
 asv_taxa <- as.data.frame(asv_taxa)
 asv_taxa$taxonomy <- paste(asv_taxa$Kingdom, asv_taxa$Phylum, asv_taxa$Class, 
                            asv_taxa$Order, asv_taxa$Family, 
                           asv_taxa$Genus, asv_taxa$Species, sep = ";")
 
-asv_tab_tax <- as.data.frame(asv_tab)
-asv_tab_tax$taxonomy <- paste(asv_taxa$taxonomy)
+# clean up taxa names and filter
+asv_taxa$taxonomy <- gsub("NA","", asv_taxa$taxonomy)
+idx <- rownames(asv_tab_filt)
+asv_taxa_filt <- asv_taxa[idx, ]
+
+asv_tab_tax <- as.data.frame(asv_tab_filt)
+asv_tab_tax$taxonomy <- paste(asv_taxa_filt$taxonomy)
+
 write.table(asv_tab_tax, paste(opt$out, "ASV_seqtab_tax.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
 
