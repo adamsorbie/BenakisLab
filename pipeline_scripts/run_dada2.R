@@ -2,7 +2,7 @@
 
 #' Author: Adam Sorbie 
 #' Date: 22/04/21
-#' Version: 0.9.65
+#' Version: 0.9.75
 
 
 ### LIBRARIES 
@@ -109,7 +109,7 @@ fnRs <- sort(list.files(pattern="R2_001.fastq.gz", full.names = TRUE))
 sample.names <- sapply(strsplit(basename(fnFs), "_R1"), `[`, 1); sample.names
 
 # if sample names contain trimmed_primer suffix remove it
-if (str_detect(sample.names, "trimmed_primer") == TRUE){
+if (str_detect(sample.names, "_trimmed_primer") == TRUE){
   sample.names <- gsub(sample.names, pattern = "_trimmed_primer", 
                        replacement = "")
 }
@@ -172,13 +172,21 @@ seqtab_chim_filt <- removeBimeraDenovo(seqtab.len_filt, method = "consensus",
                                        multithread=opt$threads, verbose = TRUE)
 
 percent.nonchim <- sum(seqtab_chim_filt)/sum(seqtab)
+
+# pre-filter by 0.25% relative abundance (Reitmeier et al 2020, Researchsquare)
+print(paste("pre-filtering dimensions:", dim(t(seqtab_chim_filt))[1], sep=" "))
+seqtab_chim_abun_filt <- filter_abundance(t(seqtab_chim_filt))
+print(paste("post-filtering dimensions:", dim(seqtab_chim_abun_filt)[1], sep=" ")) 
+seqtab_chim_abun_filt <- t(seqtab_chim_abun_filt)
+
 # check number of reads which made it through each step 
 getN <- function(x) sum(getUniques(x))
 summary_tab <- data.frame(row.names=sample.names, dada2_input=out[,1],
                           filtered=out[,2], dada_f=sapply(dadaFs, getN),
                           dada_r=sapply(dadaRs, getN), merged=sapply(merged, getN),
                           nonchim=rowSums(seqtab_chim_filt), 
-                          final_perc_reads_retained=round(rowSums(seqtab_chim_filt)/out[,1]*100, 1))
+                          perc_reads_retained=round(rowSums(seqtab_chim_filt)/out[,1]*100, 1), 
+                          abund_filt_perc=round(rowSums(seqtab_chim_abun_filt)/rowSums(seqtab_chim_filt)*100, 1))
 
 ## QC 
 qc_list <- list("Sequence_list_distribution" = seq_length_distr, 
@@ -187,11 +195,11 @@ qc_list <- list("Sequence_list_distribution" = seq_length_distr,
 if (opt$int_quality_control == TRUE){
   
   seq_len_df <- data.frame(seq_length_distr)
-  p <- ggbarplot(seq_len_df, x="Var1", y="Freq")
+  p <- ggpubr::ggbarplot(seq_len_df, x="Var1", y="Freq")
   ggsave(paste(opt$out, "sequence_len_dist.png", sep=""), p, device = "png")
   # write out study stats
   write.table(qc_list$Stats, paste(opt$out, "study_stats.txt", sep=""), 
-              sep="\t")
+              sep="\t", col.names = NA)
   
 }
 
@@ -206,14 +214,14 @@ if (!file.exists("SILVA_SSU_r138_2019.RData")){
 load("SILVA_SSU_r138_2019.RData")
 
 ## creating DNAStringSet object of our ASVs
-dna <- DNAStringSet(getSequences(seqtab_chim_filt))
+dna <- DNAStringSet(getSequences(seqtab_chim_abun_filt))
 
 ## and classifying
 tax_info <- IdTaxa(test=dna, trainingSet=trainingSet, strand="both", 
                    processors=NULL, verbose=TRUE, threshold = 50)
 
 # tax table:
-# creating table of taxonomy and setting any that are unclassified as "NA"
+# creating table of taxonomy and removing any unclassified
 ranks <- c("domain", "phylum", "class", "order", "family", "genus", "species")
 asv_taxa <- t(sapply(tax_info, function(x) {
   m <- match(ranks, x$rank)
@@ -222,54 +230,42 @@ asv_taxa <- t(sapply(tax_info, function(x) {
   taxa
 }))
 
+## write out files
 
-# generate row and column names
-asv_headers <- vector(dim(seqtab_chim_filt) [2], mode = "character")
+# create vector to contain headers
+asv_headers <- vector(dim(seqtab_chim_abun_filt) [2], mode = "character")
+# generate row and column names 
 colnames(asv_taxa) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 rownames(asv_taxa) <- gsub(pattern=">", replacement="", x=asv_headers)
 
-## write out files
-asv_seqs <- colnames(seqtab_chim_filt)
-
-
-for (i in 1:dim(seqtab_chim_filt) [2]) {
+for (i in 1:dim(seqtab_chim_abun_filt) [2]) {
   asv_headers[i] <- paste(">ASV", i, sep = "_")  
 }
-
 # fasta file 
-
+asv_seqs <- colnames(seqtab_chim_abun_filt)
 asv_fasta <- c(rbind(asv_headers, asv_seqs))
 write(asv_fasta, paste(opt$out, "ASV_seqs.fasta", sep = "/"))
 
 # count table 
-
-asv_tab <- t(seqtab_chim_filt)
-
+asv_tab <- t(seqtab_chim_abun_filt)
 row.names(asv_tab) <- sub(">", "", asv_headers)
 
-# pre-filter by 0.25% relative abundance (Reitmeier et al 2020, Researchsquare)
-print(paste("pre-filtering dimensions:", dim(asv_tab)[1], sep=" ")) 
-asv_tab_filt <- filter_abundance(asv_tab)
-print(paste("post-filtering dimensions:", dim(asv_tab_filt)[1], sep=" ")) 
-
-write.table(asv_tab_filt, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
+write.table(asv_tab, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
+
 
 # tax table 
 row.names(asv_taxa) <- sub(">", "", asv_headers)
 asv_taxa <- as.data.frame(asv_taxa)
 asv_taxa$taxonomy <- paste(asv_taxa$Kingdom, asv_taxa$Phylum, asv_taxa$Class, 
                            asv_taxa$Order, asv_taxa$Family, 
-                          asv_taxa$Genus, asv_taxa$Species, sep = ";")
+                           asv_taxa$Genus, asv_taxa$Species, sep = ";")
 
-# clean up taxa names and filter
+# clean up taxa names
 asv_taxa$taxonomy <- gsub("NA","", asv_taxa$taxonomy)
-idx <- rownames(asv_tab_filt)
-asv_taxa_filt <- asv_taxa[idx, ]
-
-asv_tab_tax <- as.data.frame(asv_tab_filt)
-asv_tab_tax$taxonomy <- paste(asv_taxa_filt$taxonomy)
-
+# write out asv tab with tax
+asv_tab_tax <- as.data.frame(asv_tab)
+asv_tab_tax$taxonomy <- paste(asv_taxa$taxonomy)
 write.table(asv_tab_tax, paste(opt$out, "ASV_seqtab_tax.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
 
