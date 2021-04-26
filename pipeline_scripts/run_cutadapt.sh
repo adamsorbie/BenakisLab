@@ -4,6 +4,7 @@
 # Date: 15/04/20
 # Version: 0.8.2
 
+# make sure cutadapt is not running any qc filter on reads as we need this for dada2
 while getopts a:A:m:M:p: flag
 do
   case "${flag}" in
@@ -29,14 +30,14 @@ conda activate bioinfo
 
 mkdir -p trimmed_primer
 
-for sample in $(ls *.fastq.gz | cut -f1-3 -d"_");
+for sample in $(ls *.fastq.gz | cut -f1 -d"-");
 do
     echo "Trimming sample: $sample"
     cutadapt -a $f_primer \
     -A $r_primer \
     -m $min_len -M $max_len \
     -o ${sample}_trimmed_primer_R1_001.fastq.gz -p ${sample}_trimmed_primer_R2_001.fastq.gz \
-     ${sample}_R1_001.fastq.gz ${sample}_R2_001.fastq.gz \
+     ${sample}-S1_L001_R1_001.fastq.gz ${sample}-S1_L001_R2_001.fastq.gz \
      >> trimmed_primer/cutadapt_primer_trimming_stats.txt 2>&1
 done
 

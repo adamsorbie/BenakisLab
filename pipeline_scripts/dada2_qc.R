@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Author: Adam Sorbie 
-# Date: 19/04/20
-# Version 0.9.0
+# Date: 26/04/20
+# Version 0.9.5
 
 library(dada2)
 library(optparse)
@@ -43,19 +43,41 @@ samples <- scan("samples", what = "character")
 fnFs <- sort(list.files(path, pattern="_R1_001.fastq.gz", full.names = TRUE))
 fnRs <- sort(list.files(path, pattern="_R2_001.fastq.gz", full.names = TRUE))
 
-trimFs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R1_001.fastq.gz"))
-trimRs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R2_001.fastq.gz"))
+dir.create(opt$out)
 
-primer_rem_out <- filterAndTrim(fnFs, trimFs, fnRs, trimRs, trimLeft = trimleft, 
+if (!is.null(trimleft)){ 
+  print("Reads untrimmed: trimming left portion of reads, before QC")
+  trimFs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R1_001.fastq.gz"))
+  trimRs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R2_001.fastq.gz"))
+  primer_rem_out <- filterAndTrim(fnFs, trimFs, fnRs, trimRs, trimLeft = trimleft, 
                                 multithread = opt$threads, compress = TRUE, 
                                 truncQ = 0, rm.phix = FALSE)
   
-dir.create(opt$out)
+  
+  jpeg(paste(opt$out,"quality_profile_f.jpg", sep="/"))
+  qc_F <- plotQualityProfile(trimFs, aggregate=TRUE)
+  print(qc_F)
+  dev.off()
+  
+  jpeg(paste(opt$out,"quality_profile_r.jpg", sep="/"))
+  qc_R <- plotQualityProfile(trimRs, aggregate=TRUE)
+  print(qc_R)
+  dev.off()
+  
+} else {
+  
+  print("Reads are pre-trimmed, plotting Quality profile directly")
+  
+  jpeg(paste(opt$out,"quality_profile_f.jpg", sep="/"))
+  qc_F <- plotQualityProfile(fnFs, aggregate=TRUE)
+  print(qc_F)
+  dev.off()
+  
+  jpeg(paste(opt$out,"quality_profile_r.jpg", sep="/"))
+  qc_R <- plotQualityProfile(fnRs, aggregate=TRUE)
+  print(qc_R)
+  dev.off()
+}
 
-jpeg(paste(opt$out,"quality_profile_F.jpg", sep="/"), quality = 100)
-plotQualityProfile(trimFs, n=1e6, aggregate = T)
-dev.off()
 
-jpeg(paste(opt$out,"quality_profile_R.jpg", sep="/"), quality=100)
-plotQualityProfile(trimRs, n=1e6, aggregate = T)
-dev.off()
+
