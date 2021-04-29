@@ -1,26 +1,39 @@
 #!/bin/bash
 # Author: Adam Sorbie
 # Date: 26/04/2021
-# Version: 0.5.0
-# $1 raw data directory 
-# $2 out directory
-# need getopts here path, output, amplicon length, f and r primer length
+# Version: 0.6.0
+ 
+# default 
+min_overlap=20
 
-# Input director contains fastq
-raw_data=$1
+while getopts a:f:r:p:o:m: flag
+do
+  case "${flag}" in
+    a) amplicon_length=${OPTARG};;
+    f) f_primer_len=${OPTARG};;
+    r) r_primer_len=${OPTARG};;
+    p) path=${OPTARG};;
+    o) out=${OPTARG};;
+    m) min_overlap=${OPTARG};;
+    *) echo "usage: $0 [-a] [-f] [-r] [-p] [-o]" >&2
+       exit 1 ;;
+  esac
+done
 
-if [[ $# -eq 0 ]] ; then
-    echo 'No arguments provided'
-    exit 0
+if ((OPTIND == 1))
+then
+  echo "No options specified, exiting"
+  exit
 fi
 
-fastqc -t 8 $raw_data/*.fastq.gz 
-cd $raw_data
-mkdir -p $2 
-mv *fastqc* $2
 
-multiqc $2 
+# activate conda env with fastqc installed
+eval "$(conda shell.bash hook)"
+conda activate bioinfo
 
+fastqc -t 8 $path/*.fastq.gz -o $out
+
+multiqc $out -o ${out}/multiqc
 # FIGARO
-figaro -i  -o /path/to/output/files -a [amplicon length] \
-    -f [forward primer length] -r [reverse primer length]
+figaro -i $path -o $out -a $amplicon_length -f $f_primer_len  -r $r_primer_len -m $min_overlap -F illumina 
+

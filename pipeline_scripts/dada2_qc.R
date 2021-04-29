@@ -34,21 +34,18 @@ setwd(opt$path)
 
 trimleft <- c(opt$trimF, opt$trimR)
 
-# invoke system command ls and cut to get sample names from fastq filenames
-system('ls *R1_001.fastq.gz | cut -f1 -d"-" > samples')
+fnFs <- sort(list.files(pattern="_R1_001.fastq.gz", full.names = TRUE))
+fnRs <- sort(list.files(pattern="_R2_001.fastq.gz", full.names = TRUE))
 
-# store sample names as variable
-samples <- scan("samples", what = "character")
-
-fnFs <- sort(list.files(path, pattern="_R1_001.fastq.gz", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern="_R2_001.fastq.gz", full.names = TRUE))
+# get sample names from forward reads 
+sample.names <- sapply(strsplit(basename(fnFs), "_S1_L001_R1"), `[`, 1); sample.names
 
 dir.create(opt$out)
 
 if (!is.null(trimleft)){ 
   print("Reads untrimmed: trimming left portion of reads, before QC")
-  trimFs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R1_001.fastq.gz"))
-  trimRs <- file.path(path, "trimmed_primer", paste0(samples, "_trimmed_primer_R2_001.fastq.gz"))
+  trimFs <- file.path(path, "trimmed_primer", paste0(sample.names, "_trimmed_primer_R1_001.fastq.gz"))
+  trimRs <- file.path(path, "trimmed_primer", paste0(sample.names, "_trimmed_primer_R2_001.fastq.gz"))
   primer_rem_out <- filterAndTrim(fnFs, trimFs, fnRs, trimRs, trimLeft = trimleft, 
                                 multithread = opt$threads, compress = TRUE, 
                                 truncQ = 0, rm.phix = FALSE)

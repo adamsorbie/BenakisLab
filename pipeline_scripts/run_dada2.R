@@ -204,38 +204,27 @@ if (opt$int_quality_control == TRUE){
 }
 
 
-## downloading DECIPHER-formatted SILVA v138 reference
-if (!file.exists("SILVA_SSU_r138_2019.RData")){
-  download.file(url="http://www2.decipher.codes/Classification/TrainingSets/SILVA_SSU_r138_2019.RData", 
-                destfile="SILVA_SSU_r138_2019.RData")
+if (!file.exists("silva_nr99_v138.1_train_set.fa.gz")){
+  download.file(url="https://zenodo.org/record/4587955/files/silva_nr99_v138.1_train_set.fa.gz?download=1", 
+                destfile="silva_nr99_v138.1_train_set.fa.gz")
 }
 
-## loading reference taxonomy object
-load("SILVA_SSU_r138_2019.RData")
+taxa <- assignTaxonomy(seqtab_chim_abun_filt, "silva_nr99_v138.1_train_set.fa.gz", 
+                       multithread=TRUE, tryRC=TRUE)
 
-## creating DNAStringSet object of our ASVs
-dna <- DNAStringSet(getSequences(seqtab_chim_abun_filt))
+if (!file.exists("silva_species_assignment_v138.1.fa.gz")){
+  download.file(url="https://zenodo.org/record/4587955/files/silva_species_assignment_v138.1.fa.gz?download=1", 
+                destfile="silva_species_assignment_v138.1.fa.gz")
+}
 
-## and classifying
-tax_info <- IdTaxa(test=dna, trainingSet=trainingSet, strand="both", 
-                   processors=NULL, verbose=TRUE, threshold = 50)
-
-# tax table:
-# creating table of taxonomy and removing any unclassified
-ranks <- c("domain", "phylum", "class", "order", "family", "genus", "species")
-asv_taxa <- t(sapply(tax_info, function(x) {
-  m <- match(ranks, x$rank)
-  taxa <- x$taxon[m]
-  taxa[startsWith(taxa, "unclassified_")] <- NA
-  taxa
-}))
+asv_taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz",
+                       tryRC=TRUE)
 
 ## write out files
 
 # create vector to contain headers
 asv_headers <- vector(dim(seqtab_chim_abun_filt) [2], mode = "character")
 # generate row and column names 
-colnames(asv_taxa) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
 rownames(asv_taxa) <- gsub(pattern=">", replacement="", x=asv_headers)
 
 for (i in 1:dim(seqtab_chim_abun_filt) [2]) {

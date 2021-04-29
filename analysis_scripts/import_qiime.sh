@@ -1,7 +1,7 @@
-!/bin/bash 
+#!/bin/bash 
 # Author: Adam Sorbie
 # Date: 29/04/21
-# Version: 0.5.0
+# Version: 0.5.2
  while getopts p:o: flag
  do
     case "${flag}" in
@@ -51,7 +51,7 @@ qiime tools import \
 --input-path qiime2_in.biom \
 --type 'FeatureTable[Frequency]' \
 --input-format BIOMV210Format \
---output-path feature-table-2.qza
+--output-path feature-table.qza
 
 # import rep seqs 
 qiime tools import \
@@ -68,5 +68,5 @@ qiime tools import \
 # import tree 
 qiime tools import \
 --input-path $asv_tree \
---output-path unrooted-tree.qza \
+--output-path rooted-tree.qza \
 --type 'Phylogeny[Rooted]'
