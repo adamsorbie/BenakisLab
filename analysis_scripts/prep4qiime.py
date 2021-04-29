@@ -6,8 +6,7 @@ import os
 
 def extract_taxa(asv):
     taxa = asv[['taxonomy']]
-    asv = asv.drop('taxonomy', axis=1)
-    asv_out = asv.T
+    asv_out = asv.drop('taxonomy', axis=1)
     return asv_out, taxa 
 
 def main():
