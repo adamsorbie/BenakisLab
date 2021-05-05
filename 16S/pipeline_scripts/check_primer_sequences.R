@@ -1,8 +1,8 @@
 #!/usr/bin/ Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 16/04/21
-#' Version: 0.3.0
+#' Date: 30/04/21
+#' Version: 0.3.5
 #' Adapted from: DADA2 ITS workflow:https://benjjneb.github.io/dada2/ITS_workflow.html
 
 ### LIBRARIES 
@@ -10,7 +10,7 @@ library(dada2)
 library(Biostrings)
 library(ShortRead)
 library(optparse)
-
+library(parallel)
 
 ### CMD OPTIONS
 

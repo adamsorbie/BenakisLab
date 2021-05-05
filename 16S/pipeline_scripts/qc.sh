@@ -1,7 +1,7 @@
 #!/bin/bash
 # Author: Adam Sorbie
-# Date: 26/04/2021
-# Version: 0.6.0
+# Date: 30/04/2021
+# Version: 0.7.5
  
 # default 
 min_overlap=20
@@ -30,10 +30,11 @@ fi
 # activate conda env with fastqc installed
 eval "$(conda shell.bash hook)"
 conda activate bioinfo
+outdir=$(echo ${out%/}) 
 
-fastqc -t 8 $path/*.fastq.gz -o $out
+fastqc -t 8 $path/*.fastq.gz -o $outdir
 
-multiqc $out -o ${out}/multiqc
+multiqc $outdir -o ${outdir}/multiqc
 # FIGARO
 figaro -i $path -o $out -a $amplicon_length -f $f_primer_len  -r $r_primer_len -m $min_overlap -F illumina 
 

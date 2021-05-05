@@ -20,6 +20,8 @@
  
 eval "$(conda shell.bash hook)"
 conda activate qiime2-2021.4
+# strip trailing slash if existing 
+outdir=$(echo ${out%/}) 
 
 # declare variables - these can be hardcoded since pipeline output always has the same names
 asv_tab=${path}"/ASV_seqtab_tax.tab"
@@ -28,12 +30,11 @@ asv_seqs_aln=${path}"/aligned.fasta"
 asv_tree=${path}/"ASV_tree.tre"
 
 # grab taxonomy and split from otu table 
-python prep4qiime.py -a $asv_tab -o $out
+python prep4qiime.py -a $asv_tab -o $outdir
 
 # cd to outdir since remaining commands should be in path 
-cd $out || 
+cd $outdir || 
 echo $PWD
-
 biom convert -i qiime2_in.tsv -o qiime2_in.biom --table-type="OTU table" --to-hdf5 
 
 
