@@ -37,8 +37,8 @@ mkdir -p trimmed_primer
 for sample in $(ls *.fastq.gz | cut -f1 -d"_");
 do
     echo "Trimming sample: $sample"
-    cutadapt -g $f_primer \
-    -G $r_primer \
+    cutadapt -g $f_primer -g $r_primer \
+    -G $r_primer -G $f_primer \
     -m $min_len -M $max_len \
     -j 0 \
     -o ${sample}_trimmed_primer_R1_001.fastq.gz -p ${sample}_trimmed_primer_R2_001.fastq.gz \

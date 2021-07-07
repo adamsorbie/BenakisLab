@@ -17,7 +17,9 @@ option_list = list(
   make_option(c("-f", "--trimF"), type="integer", default=NULL, 
               help="trim left fwd reads", metavar="character"),
   make_option(c("-r", "--trimR"), type="integer", default=NULL, 
-              help="trim left rev reads", metavar="character")
+              help="trim left rev reads", metavar="character"),
+  make_option(c("-R", "--trim_end"), type="integer", default=0, 
+              help="trim right forward and reverse reads", metavar="character") 
 )
 
 opt_parser = OptionParser(option_list=option_list)
@@ -33,6 +35,7 @@ path <- opt$path
 setwd(opt$path)
 
 trimleft <- c(opt$trimF, opt$trimR)
+trimright <- rep(opt$trim_end, 2)
 
 fnFs <- sort(list.files(pattern="_R1_001.fastq.gz", full.names = TRUE))
 fnRs <- sort(list.files(pattern="_R2_001.fastq.gz", full.names = TRUE))
@@ -47,8 +50,8 @@ if (!is.null(trimleft)){
   trimFs <- file.path(path, "trimmed_primer", paste0(sample.names, "_trimmed_primer_R1_001.fastq.gz"))
   trimRs <- file.path(path, "trimmed_primer", paste0(sample.names, "_trimmed_primer_R2_001.fastq.gz"))
   primer_rem_out <- filterAndTrim(fnFs, trimFs, fnRs, trimRs, trimLeft = trimleft, 
-                                multithread = opt$threads, compress = TRUE, 
-                                truncQ = 0, rm.phix = FALSE)
+                                trimRight = trimright, multithread = opt$threads, 
+                                compress = TRUE, truncQ = 0, rm.phix = FALSE)
   
   
   jpeg(paste(opt$out,"quality_profile_f.jpg", sep="/"))

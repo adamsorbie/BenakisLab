@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 03/05/21
-#' Version: 0.9.8
+#' Date: 20/05/21
+#' Version: 0.9.9
 
 
 ### LIBRARIES 
@@ -264,6 +264,8 @@ system("muscle -in ASV_seqs.fasta -out aligned.fasta -maxiters 3")
 system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
 
 print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
+
+
 
 # to-do Polishing script 
 
