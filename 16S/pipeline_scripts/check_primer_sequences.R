@@ -8,9 +8,9 @@
 ### LIBRARIES 
 library(dada2)
 library(Biostrings)
-library(ShortRead)
 library(optparse)
 library(parallel)
+library(ShortRead)
 
 ### CMD OPTIONS
 
