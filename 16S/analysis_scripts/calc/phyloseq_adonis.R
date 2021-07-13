@@ -1,4 +1,5 @@
 library(tidyverse)
+library(vegan)
 
 phyloseq_adonis <- function(phylo_obj, dist_matrix, factor, ...) {
   metadata_df <- as(sample_data(phylo_obj), "data.frame")
