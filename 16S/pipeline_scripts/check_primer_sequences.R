@@ -12,6 +12,8 @@ library(optparse)
 library(parallel)
 library(ShortRead)
 
+# Fix issue where script ignores n sample
+
 ### CMD OPTIONS
 
 # required options trunclenr trunclenl, 

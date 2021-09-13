@@ -1,9 +1,19 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 20/05/21
-#' Version: 0.9.9
+#' Date: 13/09/21
+#' Version: 1.0.1
 
+# to-do Polishing script 
+
+# necessary 
+
+# nice additions 
+
+#' enhance taxonomic classification if possible 
+#' add third table with best hit formatting 
+#' remove any redundant code 
+#' function to install missing packages 
 
 ### LIBRARIES 
 library(dada2)
@@ -11,6 +21,7 @@ library(Biostrings)
 library(optparse)
 library(ggpubr)
 library(stringr)
+library(tictoc)
 
 ### CMD OPTIONS
 
@@ -73,7 +84,7 @@ if (RIGHT(opt$path, 1) != "/") {
 if (RIGHT(opt$out, 1) != "/") {
   opt$out <- paste0(opt$out, "/")
 }
-
+tic()
 print(paste("ANALYSIS STARTING", Sys.time(), sep=" "))
 
 path <- opt$path 
@@ -265,20 +276,15 @@ system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
 
 print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
 
-
-
-# to-do Polishing script 
-
-# necessary 
-
-#' re-check code based on astrobiomike/DADA2 tutorial
-
-# nice additions 
-
-#' enhance taxonomic classification if possible 
-#' add third table with best hit formatting 
-#' remove any redundant code 
-#' tidy up writing out section
-#' progress bar 
-#' log of stdout 
-#' process time 
+# Send parameters to log file 
+sink(paste(opt$out, "parameter_log.txt", sep="/"))
+print(paste0("Filepath: ", opt$path))
+print(paste0("Forward trunc: ", opt$trunc_F, sep=":"))
+print(paste0("Reverse trunc: ", opt$trunc_R, sep=":"))
+print(paste0("Internal QC performed: ", opt$int_quality_control))
+print(paste0("Output: ", opt$out))
+print(paste0("Forward errors: ", opt$n_errorsF))
+print(paste0("Reverse errors: ", opt$n_errorsR))
+print(paste0("Threads: ", opt$threads))
+toc()
+closeAllConnections() 

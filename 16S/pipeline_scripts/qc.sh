@@ -6,6 +6,8 @@
 # default 
 min_overlap=20
 
+# fix annoying issue where script fails if path is specified without /
+
 while getopts a:f:r:p:o:m: flag
 do
   case "${flag}" in
