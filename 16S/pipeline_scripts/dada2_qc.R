@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Author: Adam Sorbie 
-# Date: 26/04/20
-# Version 0.9.5
+# Date: 13/09/21
+# Version 0.9.6
 
 library(dada2)
 library(optparse)
@@ -21,6 +21,20 @@ option_list = list(
   make_option(c("-R", "--trim_end"), type="integer", default=0, 
               help="trim right forward and reverse reads", metavar="character") 
 )
+
+# Functions
+
+RIGHT <- function(x,n){
+  substring(x,nchar(x)-n+1)
+}
+
+# check all paths have trailing forward slash 
+if (RIGHT(opt$path, 1) != "/") {
+  opt$path <- paste0(opt$path, "/")
+}
+if (RIGHT(opt$out, 1) != "/") {
+  opt$out <- paste0(opt$out, "/")
+}
 
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
