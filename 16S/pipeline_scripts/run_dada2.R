@@ -4,16 +4,6 @@
 #' Date: 14/09/21
 #' Version: 1.0.2
 
-# to-do Polishing script 
-
-# necessary 
-
-# nice additions 
-
-#' enhance taxonomic classification if possible 
-#' add third table with best hit formatting 
-#' remove any redundant code 
-#' better error handling 
 
 ### LIBRARIES 
 if(!require("pacman")){
