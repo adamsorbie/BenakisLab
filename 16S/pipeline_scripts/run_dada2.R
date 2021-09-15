@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 13/09/21
-#' Version: 1.0.1
+#' Date: 14/09/21
+#' Version: 1.0.2
 
 # to-do Polishing script 
 
