@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 #' Author: Adam Sorbie 
-#' Date: 14/09/21
-#' Version: 1.0.2
+#' Date: 17/09/21
+#' Version: 1.0.3
 
 
 ### LIBRARIES 
@@ -25,10 +25,10 @@ option_list <- list(
               help="output qc from dada2 run", action = "store"),
   make_option(c("-o", "--out"), type="character", default="dada2_out", 
               help="full path of output folder", action = "store"),
-  make_option(c("-n", "--n_errorsF"), type="integer", default =2,
+  make_option(c("-n", "--n_errorsF"), type="integer", default=2,
               help="expected errors for forward reads",
               action = "store"), 
-  make_option(c("-N", "--n_errorsR"),  type="integer", default =2,
+  make_option(c("-N", "--n_errorsR"),  type="integer", default=2,
               help=" expected errors for reverse reads",
               action = "store"),
   make_option(c("-t", "--threads"),  type="integer", default=2,
@@ -292,7 +292,7 @@ setwd(opt$out)
 
 # align seqs with muscle and create tree with FastTree 
 if (checkOS() == "unix"){
-  system("muscle -in ASV_seqs.fasta -out aligned.fasta -maxiters 3")
+  system("mafft --maxiterate 3 ASV_seqs.fasta > aligned.fasta")
   
   system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
 } else if (checkOS() == "windows"){
