@@ -9,7 +9,7 @@
 if(!require("pacman")){
   install.packages("pacman", repos = "http://cran.us.r-project.org")
 }
-pacman::p_load(dada2, Biostrings, optparse, ggpubr, stringr, tictoc)
+pacman::p_load(dada2, Biostrings, optparse, ggpubr, stringr, tictoc, DECIPHER)
 
 ### CMD OPTIONS
 
@@ -228,31 +228,37 @@ if (opt$int_quality_control == TRUE){
 
 ## Taxonomic classification 
 
-# download silva files and assign taxonomy 
+# download silva file and assign taxonomy 
 
-if (!file.exists("silva_nr99_v138.1_train_set.fa.gz")){
-  download.file(url="https://zenodo.org/record/4587955/files/silva_nr99_v138.1_train_set.fa.gz?download=1", 
-                destfile="silva_nr99_v138.1_train_set.fa.gz")
+############################## UNDER CONSTRUCTION 
+if (!file.exists("SILVA_SSU_r138_2019.RData")){
+  download.file(url="http://www2.decipher.codes/Classification/TrainingSets/SILVA_SSU_r138_2019.RData", 
+                destfile="SILVA_SSU_r138_2019.RData")
 }
 
-taxa <- assignTaxonomy(seqtab_chim_abun_filt, "silva_nr99_v138.1_train_set.fa.gz", 
-                       multithread=TRUE, tryRC=TRUE)
+load("SILVA_SSU_r138_2019.RData")
+seqs <- DNAStringSet(getSequences(seqtab_chim_abun_filt))
 
-if (!file.exists("silva_species_assignment_v138.1.fa.gz")){
-  download.file(url="https://zenodo.org/record/4587955/files/silva_species_assignment_v138.1.fa.gz?download=1", 
-                destfile="silva_species_assignment_v138.1.fa.gz")
-}
+taxa_classify <- IdTaxa(test=seqs, trainingSet=trainingSet, strand="both", 
+                        processors=opt$threads, threshold = 50)
 
-# addSpecies may improve % classified in some cases
-asv_taxa <- addSpecies(taxa, "silva_species_assignment_v138.1.fa.gz",
-                       tryRC=TRUE)
+ranks <- c("domain", "phylum", "class", "order", "family", "genus", "species")
+asv_taxa <- t(sapply(taxa_classify, function(x) {
+  m <- match(ranks, x$rank)
+  taxa_classify <- x$taxon[m]
+  taxa_classify[startsWith(taxa_classify, "unclassified_")] <- NA
+  taxa_classify
+}))
 
-## write output files
 
+########################################################
 # create vector to contain headers
 asv_headers <- vector(dim(seqtab_chim_abun_filt) [2], mode = "character")
 # generate row and column names 
 rownames(asv_taxa) <- gsub(pattern=">", replacement="", x=asv_headers)
+# replace colnames in taxonomy with more useful hierarchy 
+ranks_phylo <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species")
+colnames(asv_taxa) <- ranks_phylo
 
 # generate fasta headers
 for (i in 1:dim(seqtab_chim_abun_filt) [2]) {
@@ -290,20 +296,11 @@ write.table(asv_tab_tax, paste(opt$out, "ASV_seqtab_tax.tab", sep = "/"),
 # Phylogenetic tree construction 
 setwd(opt$out)
 
-# align seqs with muscle and create tree with FastTree 
-if (checkOS() == "unix"){
-  system("mafft --maxiterate 3 ASV_seqs.fasta > aligned.fasta")
+# align seqs with mafft and create tree with FastTree 
+system("mafft --maxiterate 3 ASV_seqs.fasta > aligned.fasta")
   
-  system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
-} else if (checkOS() == "windows"){
-  
-  #system("muscle.exe -in ASV_seqs.fasta -out aligned.fasta -maxiters 3")
-  
-  #system("FastTree.exe -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
-  
-  print("phylogenetic tree construction for windows is currently unsupported but
-        will be added in the near future")
-}
+system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
+
 print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
 
 # Send parameters to log file 
