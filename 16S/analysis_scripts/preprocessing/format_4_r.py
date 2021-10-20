@@ -24,7 +24,7 @@ def cat_id_description(df, filetype):
 def add_taxonomy(pred_meta, taxonomy):
     # make taxonomy dict mapping otus to taxonomy string
     taxmap =  pd.Series(taxonomy.taxonomy.values,index=taxonomy.index).to_dict()
-    pred_meta['taxonomy'] = pred_meta['taxon'].map(taxmap)
+    pred_meta['taxonomy'] = pred_meta['sequence'].map(taxmap)
     return pred_meta
 
 def format_taxonomy(taxonomy):
