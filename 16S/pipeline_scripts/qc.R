@@ -1,11 +1,12 @@
 #!/usr/bin/env Rscript
-# Author: Adam Sorbie 
+# Author: Adam Sorbie
 # Date: 13/09/21
 # Version 0.9.6
 
 library(dada2)
 library(optparse)
 library(parallel)
+library(ggplot2)
 
 option_list = list(
   make_option(c("-p", "--path"), type="character", default=NULL, 
@@ -30,8 +31,6 @@ if (RIGHT(opt$out, 1) != "/") {
   opt$out <- paste0(opt$out, "/")
 }
 
-opt_parser = OptionParser(option_list=option_list)
-opt = parse_args(opt_parser)
 
 if (is.null(opt$path)){
   print_help(opt_parser)
@@ -47,16 +46,16 @@ fnFs <- sort(list.files(pattern="_R1_001.fastq.gz", full.names = TRUE))
 fnRs <- sort(list.files(pattern="_R2_001.fastq.gz", full.names = TRUE))
 
 # get sample names from forward reads 
-sample.names <- sapply(strsplit(basename(fnFs), "_S1_L001_R1"), `[`, 1); sample.names
+sample.names <- sapply(strsplit(basename(fnFs), "_S1_L001_R1"), `[`, 1)
 
 dir.create(opt$out)
 
+print("Plotting quality profiles")
 qc_F <- plotQualityProfile(fnFs, aggregate=TRUE)
-ggsave(paste(opt$out,"quality_profile_f.jpg", sep="/"), qc_F, device = "jpeg", dpi = 200)
+dat_F <- qc_F$data
+#x <- qc_F + geom_vline(xintercept = 240, linetype=2, color="red")
+ggsave(paste(opt$out,"quality_profile_f2.png", sep="/"), x, device = "png", dpi = 300)
 
 qc_R <- plotQualityProfile(fnRs, aggregate=TRUE)
-ggsave(paste(opt$out,"quality_profile_r.jpg", sep="/"), qc_R, device = "jpeg", dpi = 200)
-
-
-
-
+#y <- qc_R + geom_vline(xintercept = 220, linetype=2, color="red")
+ggsave(paste(opt$out,"quality_profile_r.png", sep="/"), y, device = "png", dpi = 300)

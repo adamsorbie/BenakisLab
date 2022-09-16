@@ -1,0 +1,1 @@
+Rscript run_dada2_SE.R -p ~/data/meta-analysis_human/Gu_et_al-2021-CH-PRJCA004950/fastq/trimmed_primer/ -o ~/data/meta-analysis_human/Gu_et_al-2021-CH-PRJCA004950/dada2_out -f 220 -o ~/data/meta-analysis_human/Gu_et_al-2021-CH-PRJCA004950/dada2_out -n 2 -t 6

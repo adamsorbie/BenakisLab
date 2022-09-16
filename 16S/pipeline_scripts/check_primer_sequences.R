@@ -73,9 +73,6 @@ search_primers <- function(R1_filepaths, R2_filepaths,
 if (RIGHT(opt$path, 1) != "/") {
   opt$path <- paste0(opt$path, "/")
 }
-if (RIGHT(opt$out, 1) != "/") {
-  opt$out <- paste0(opt$out, "/")
-}
 
 ## MAIN
 fnFs <- sort(list.files(opt$path, pattern = "_R1_001.fastq.gz", full.names = TRUE))
