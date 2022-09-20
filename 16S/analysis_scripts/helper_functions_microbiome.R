@@ -126,3 +126,19 @@ plot_heatmap <- function(ps,
     ))
   }
 }
+
+
+create_dummy_tax <- function(asvtab) {
+  if ("ASV" %in% colnames(asvtab)) {
+    asvtab <- t(asvtab)
+  }
+  dummy_tax <-
+    matrix(data = colnames(asvtab),
+           nrow = ncol(asvtab),
+           ncol = 6)
+  colnames(dummy_tax) <-
+    c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus")
+  rownames(dummy_tax) <- colnames(asvtab)
+  
+  return(dummy_tax)
+}
