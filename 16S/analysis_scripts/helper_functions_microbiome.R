@@ -1,5 +1,6 @@
 library(pheatmap)
 library(ComplexHeatmap)
+library(tidyverse)
 
 get_top_n <- function(ps, n, level = "ASV") {
   if (level != "ASV") {
