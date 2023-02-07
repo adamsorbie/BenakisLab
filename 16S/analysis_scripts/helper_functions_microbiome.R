@@ -1,6 +1,7 @@
-library(pheatmap)
-library(ComplexHeatmap)
-library(tidyverse)
+if(!require("pacman")){
+  install.packages("pacman", repos = "http://cran.us.r-project.org")
+}
+pacman::p_load(ComplexHeatmap, pheatmap, tidyverse)
 
 get_top_n <- function(ps, n, level = "ASV") {
   if (level != "ASV") {
