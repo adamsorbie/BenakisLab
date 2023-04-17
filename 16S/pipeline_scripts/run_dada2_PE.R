@@ -9,7 +9,7 @@
 if(!require("pacman")){
   install.packages("pacman", repos = "http://cran.us.r-project.org")
 }
-pacman::p_load(dada2, Biostrings, optparse, ggpubr, stringr, tictoc, DECIPHER)
+pacman::p_load(dada2, Biostrings, optparse, ggpubr, stringr, tictoc, DECIPHER, parallel)
 
 ### CMD OPTIONS
 
@@ -42,8 +42,9 @@ opt <- parse_args(opt_parser)
 # check path exists 
 if (is.null(opt$path)) {
   print_help(opt_parser)
-  stop("At least one argument must be supplied (path)", call.=FALSE)
+  stop("File path must be supplied (path)", call.=FALSconE)
 }
+
 
 # check selected number of threads is ok
 if (opt$threads > detectCores()){
@@ -77,6 +78,13 @@ checkOS <- function(){
    return(.Platform$OS.type)
 }
 
+in_path = function(ex) {
+  exit_code = suppressWarnings(system2("command", 
+                                       args = c("-v", ex), 
+                                       stdout = FALSE))
+  return(exit_code == 0)
+}
+
 ### MAIN
 
 # check all paths have trailing forward slash 
@@ -95,15 +103,16 @@ print(paste("ANALYSIS STARTING", Sys.time(), sep=" "))
 path <- opt$path 
 setwd(path)
 
-dir.create(opt$out)
+dir.create(opt$out, showWarnings = F)
 
 maxE <- c(opt$n_errorsF, opt$n_errorsR)
 trunc_params <- c(opt$trunc_f, opt$trunc_r)
 
 # check for illegal characters in fastq filenames and exit if detected 
 illegal_chars <- c("-","#", "@", " ")
-check_fnames <- str_detect(list.files(pattern = "*.fastq.gz"), 
-                           illegal_chars)
+# use map/apply here
+check_fnames <- sapply(illegal_chars, function(x)
+  str_detect(list.files(pattern = "*.fastq.gz"), x))
 
 if (any(check_fnames == TRUE)){
   print("filenames not in illumina format see: https://support.illumina.com/help/BaseSpace_OLH_009008/Content/Source/Informatics/BS/NamingConvention_FASTQ-files-swBS.htm, 
@@ -123,8 +132,8 @@ sample.names <- sapply(strsplit(basename(fnFs), "_R1"), `[`, 1); sample.names
 
 # if sample names contain trimmed_primer suffix remove it
 if (any(str_detect(sample.names, "_trimmed_primer") == TRUE)){
-  sample.names <- gsub(sample.names, pattern = "_trimmed_primer", 
-                       replacement = "")
+  sample.names <- gsub(pattern = "_trimmed_primer", 
+                       replacement = "", x = sample.names)
 }
 
 # output path for filtered F reads
@@ -270,6 +279,8 @@ write(asv_fasta, paste(opt$out, "ASV_seqs.fasta", sep = "/"))
 # write feature count table 
 asv_tab <- t(seqtab_chim_abun_filt)
 row.names(asv_tab) <- sub(">", "", asv_headers)
+# remove _S1_L001 illumina format sample name from column headers
+colnames(asv_tab) <- gsub(pattern = "_S1_L001", replacement= "", x=colnames(asv_tab))
 
 write.table(asv_tab, paste(opt$out, "ASV_seqtab.tab", sep = "/"), 
             sep = "\t", quote = F, col.names = NA)
@@ -295,8 +306,13 @@ write.table(asv_tab_tax, paste(opt$out, "ASV_seqtab_tax.tab", sep = "/"),
 setwd(opt$out)
 
 # align seqs with muscle and create tree with FastTree 
-system("mafft --preservecase --maxiterate 3 ASV_seqs.fasta > aligned.fasta")
-system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
+if (all(in_path("mafft"), in_path("FastTree"))){
+  system("mafft --preservecase --maxiterate 3 ASV_seqs.fasta > aligned.fasta")
+  system("FastTree -quiet -nosupport -gtr -nt aligned.fasta > ASV_tree.tre")
+} else {
+  print("mafft or FastTree missing from path, skipping")
+}
+
 
 print(paste("ANALYSIS COMPLETED", Sys.time(), sep=" "))
 
@@ -310,5 +326,6 @@ print(paste0("Output: ", opt$out))
 print(paste0("Forward errors: ", opt$n_errorsF))
 print(paste0("Reverse errors: ", opt$n_errorsR))
 print(paste0("Threads: ", opt$threads))
+sessionInfo()
 toc()
 closeAllConnections() 

@@ -6,12 +6,10 @@
 #' Adapted from: DADA2 ITS workflow:https://benjjneb.github.io/dada2/ITS_workflow.html
 
 ### LIBRARIES 
-library(dada2)
-library(Biostrings)
-library(optparse)
-library(parallel)
-library(ShortRead)
-
+if(!require("pacman")){
+  install.packages("pacman", repos = "http://cran.us.r-project.org")
+}
+pacman::p_load(dada2, optparse, parallel, ShortRead)
 
 ### CMD OPTIONS
 
